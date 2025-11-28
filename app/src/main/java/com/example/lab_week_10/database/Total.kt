@@ -18,6 +18,8 @@ data class Total(
     @ColumnInfo(name = "id")
     val id: Long = 0,
 
+    // Here we set a second column to store the total object
+    // containing the value and the date
     // @Embedded is used to set column as an object
     @Embedded val total: TotalObject
 )

@@ -32,9 +32,9 @@ class MainActivity : AppCompatActivity() {
         prepareViewModel()
     }
 
+    // Show toast with last update date when app starts
     override fun onStart() {
         super.onStart()
-        // Show toast with the last update date
         val total = db.totalDao().getTotal(ID)
         if (total.isNotEmpty()) {
             Toast.makeText(
@@ -45,6 +45,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Update the database with current date when app is paused
     override fun onPause() {
         super.onPause()
         val currentDate = Date().toString()
@@ -77,7 +78,7 @@ class MainActivity : AppCompatActivity() {
             applicationContext,
             TotalDatabase::class.java, "total-database"
         ).allowMainThreadQueries()
-            .fallbackToDestructiveMigration()
+            .fallbackToDestructiveMigration() // This allows Room to recreate DB when schema changes
             .build()
     }
 
