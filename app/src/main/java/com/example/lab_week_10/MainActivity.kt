@@ -3,11 +3,21 @@ package com.example.lab_week_10
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
+import androidx.room.Room
+import com.example.lab_week_10.database.Total
+import com.example.lab_week_10.database.TotalDatabase
+import com.example.lab_week_10.database.TotalObject
 import com.example.lab_week_10.viewmodels.TotalViewModel
+import java.util.Date
 
 class MainActivity : AppCompatActivity() {
+    // Create an instance of the TotalDatabase
+    private val db by lazy { prepareDatabase() }
+
+    // Create an instance of the TotalViewModel
     private val viewModel by lazy {
         ViewModelProvider(this)[TotalViewModel::class.java]
     }
@@ -16,7 +26,34 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Initialize the value of the total from the database
+        initializeValueFromDatabase()
+        // Prepare the ViewModel
         prepareViewModel()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Show toast with the last update date
+        val total = db.totalDao().getTotal(ID)
+        if (total.isNotEmpty()) {
+            Toast.makeText(
+                this,
+                "Last updated: ${total.first().total.date}",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        val currentDate = Date().toString()
+        db.totalDao().update(
+            Total(
+                ID,
+                TotalObject(viewModel.total.value!!, currentDate)
+            )
+        )
     }
 
     private fun updateText(total: Int) {
@@ -27,13 +64,39 @@ class MainActivity : AppCompatActivity() {
     private fun prepareViewModel() {
         // Observe the LiveData object
         viewModel.total.observe(this) { total ->
-            // Whenever the value of the LiveData object changes
-            // the updateText() is called, with the new value as the parameter
             updateText(total)
         }
 
         findViewById<Button>(R.id.button_increment).setOnClickListener {
             viewModel.incrementTotal()
         }
+    }
+
+    private fun prepareDatabase(): TotalDatabase {
+        return Room.databaseBuilder(
+            applicationContext,
+            TotalDatabase::class.java, "total-database"
+        ).allowMainThreadQueries()
+            .fallbackToDestructiveMigration()
+            .build()
+    }
+
+    private fun initializeValueFromDatabase() {
+        val total = db.totalDao().getTotal(ID)
+        if (total.isEmpty()) {
+            val currentDate = Date().toString()
+            db.totalDao().insert(
+                Total(
+                    id = 1,
+                    total = TotalObject(0, currentDate)
+                )
+            )
+        } else {
+            viewModel.setTotal(total.first().total.value)
+        }
+    }
+
+    companion object {
+        const val ID: Long = 1
     }
 }
